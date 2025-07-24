@@ -1,5 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
+from django.conf import settings
+# ...
 
 class User(AbstractUser):
     is_active = models.BooleanField(default=False)
@@ -24,9 +27,21 @@ class Sentence(models.Model):
     sentence_id  = models.CharField(max_length=32, null=True, blank=True, unique=True)
     newsentence  = models.TextField(null=True, blank=True)
 
-    def __str__(self):
-        # show the provided sentence_id if present, otherwise the PK
-        return f"{self.sentence_id or self.id}: {self.text[:30]}…"
+    # NEW
+    locked_by  = models.ForeignKey(User, null=True, blank=True,
+                               on_delete=models.SET_NULL,
+                               related_name='locked_sentences')
+    locked_at  = models.DateTimeField(null=True, blank=True)
+
+    def lock(self, user):
+        self.locked_by = user
+        self.locked_at = timezone.now()
+        self.save(update_fields=['locked_by', 'locked_at'])
+
+    def unlock(self):
+        self.locked_by = None
+        self.locked_at = None
+        self.save(update_fields=['locked_by', 'locked_at'])
 
 class Particle(models.Model):
     code    = models.CharField(max_length=50)

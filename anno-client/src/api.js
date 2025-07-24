@@ -24,3 +24,7 @@ api.interceptors.request.use(
 );
 
 export default api;
+
+export const lockSentence = (id) => api.post(`/sentences/${id}/lock/`);
+export const releaseSentence = (id) => api.post(`/sentences/${id}/release/`);
+

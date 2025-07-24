@@ -1,29 +1,31 @@
 // src/Login.js
 import React, { useState } from 'react';
-import { useNavigate }      from 'react-router-dom';
-import api                   from './api';
+import api from './api';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError]       = useState('');
-  const navigate                = useNavigate();
+  const [error,    setError]    = useState('');
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      // 1) Call login endpoint
       const { data } = await api.post('/login/', { username, password });
-      
-      // 2) Store token and attach to future requests
-      localStorage.setItem('access', data.access);
 
-      // 3) Now navigate
-      navigate('/domains');
+      localStorage.setItem('access', data.access);
+      if (data.refresh) localStorage.setItem('refresh', data.refresh);
+      api.defaults.headers.common.Authorization = `Bearer ${data.access}`;
+
+      // Hard refresh so header/routes re-evaluate auth
+      window.location.href = '/domains';
     } catch (err) {
       console.error(err);
-      setError('Invalid credentials');
+      const msg =
+        err.response?.data?.detail ||
+        err.response?.data?.non_field_errors?.[0] ||
+        'Invalid credentials';
+      setError(msg);
     }
   };
 
@@ -33,26 +35,30 @@ export default function Login() {
       {error && <div className="alert alert-danger">{error}</div>}
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
-          <label>Username</label>
-          <input 
-            type="username" 
+          <label htmlFor="username">Username</label>
+          <input
+            id="username"
+            type="text"
             className="form-control"
             value={username}
-            onChange={e=>setUsername(e.target.value)}
+            onChange={e => setUsername(e.target.value)}
+            autoComplete="username"
             required
           />
         </div>
         <div className="mb-3">
-          <label>Password</label>
-          <input 
-            type="password" 
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
             className="form-control"
             value={password}
-            onChange={e=>setPassword(e.target.value)}
+            onChange={e => setPassword(e.target.value)}
+            autoComplete="current-password"
             required
           />
         </div>
-        <button className="btn btn-primary" type="submit">
+        <button className="btn btn-primary w-100" type="submit">
           Log In
         </button>
       </form>

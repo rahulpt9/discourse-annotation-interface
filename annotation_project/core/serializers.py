@@ -9,9 +9,9 @@ class SignupSerializer(serializers.ModelSerializer):
         fields = ('username', 'email', 'password')
         extra_kwargs = {'password': {'write_only': True}}
 
-    def create(self, validated):
-        user = super().create(validated)
-        user.set_password(validated['password'])
+    def create(self, validated_data):
+        user = super().create(validated_data)
+        user.set_password(validated_data['password'])
         user.is_active = False
         user.save()
         return user
@@ -30,9 +30,18 @@ class HeadingSerializer(serializers.ModelSerializer):
 
 
 class SentenceSerializer(serializers.ModelSerializer):
+    locked_by_me = serializers.SerializerMethodField()
+
     class Meta:
         model  = Sentence
-        fields = ('id', 'sentence_id', 'text', 'newsentence')
+        fields = ('id', 'sentence_id', 'text', 'newsentence',
+                  'locked_by', 'locked_by_me')  # include locked_by if you want
+
+    def get_locked_by_me(self, obj):
+        req = self.context.get('request')
+        if not req or req.user.is_anonymous:
+            return False
+        return obj.locked_by_id == req.user.id
 
 
 class ParticleSerializer(serializers.ModelSerializer):
